@@ -17,9 +17,21 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
   final _formKey = GlobalKey<FormState>();
   
   late TextEditingController _nameController;
-  late TextEditingController _categoryController;
   late TextEditingController _quantityController;
   late TextEditingController _thresholdController;
+
+  final List<String> _categories = [
+    'Electronics',
+    'Office Supplies',
+    'Furniture',
+    'Groceries',
+    'Clothing',
+    'Tools',
+    'Hardware',
+    'Cleaning Supplies',
+    'Other'
+  ];
+  String? _selectedCategory;
 
   bool get isEditing => widget.product != null;
 
@@ -27,15 +39,21 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.product?.name ?? '');
-    _categoryController = TextEditingController(text: widget.product?.category ?? '');
     _quantityController = TextEditingController(text: widget.product?.quantity.toString() ?? '');
     _thresholdController = TextEditingController(text: widget.product?.minimumThreshold.toString() ?? '');
+
+    final initialCategory = widget.product?.category ?? '';
+    if (initialCategory.isNotEmpty) {
+      if (!_categories.contains(initialCategory)) {
+        _categories.add(initialCategory);
+      }
+      _selectedCategory = initialCategory;
+    }
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _categoryController.dispose();
     _quantityController.dispose();
     _thresholdController.dispose();
     super.dispose();
@@ -46,7 +64,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
       final provider = Provider.of<InventoryProvider>(context, listen: false);
       
       final name = _nameController.text.trim();
-      final category = _categoryController.text.trim();
+      final category = _selectedCategory ?? 'Other';
       final quantity = int.parse(_quantityController.text.trim());
       final threshold = int.parse(_thresholdController.text.trim());
 
@@ -147,14 +165,25 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                 validator: (val) => Validators.validateRequired(val, 'Product Name'),
               ),
               const SizedBox(height: 16),
-              TextFormField(
-                controller: _categoryController,
+              DropdownButtonFormField<String>(
+                value: _selectedCategory,
                 decoration: const InputDecoration(
                   labelText: 'Category',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.category),
                 ),
-                validator: (val) => Validators.validateRequired(val, 'Category'),
+                items: _categories.map((String category) {
+                  return DropdownMenuItem<String>(
+                    value: category,
+                    child: Text(category),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _selectedCategory = newValue;
+                  });
+                },
+                validator: (val) => val == null || val.isEmpty ? 'Please select a category' : null,
               ),
               const SizedBox(height: 16),
               Row(

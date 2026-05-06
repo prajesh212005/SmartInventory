@@ -14,22 +14,55 @@ class DashboardScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Smart Inventory'),
+        title: const Text(
+          'Overview',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         actions: [
           Consumer<InventoryProvider>(
             builder: (context, provider, child) {
               return Padding(
-                padding: const EdgeInsets.only(right: 16.0),
+                padding: const EdgeInsets.only(right: 20.0),
                 child: Center(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: provider.isOnline ? Colors.green : Colors.red,
-                      borderRadius: BorderRadius.circular(12),
+                      color: provider.isOnline 
+                          ? AppColors.statusAvailable.withOpacity(0.2) 
+                          : AppColors.statusCritical.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: provider.isOnline ? AppColors.statusAvailable : AppColors.statusCritical,
+                        width: 1,
+                      ),
                     ),
-                    child: Text(
-                      provider.isOnline ? 'Online' : 'Offline',
-                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: provider.isOnline ? AppColors.statusAvailable : AppColors.statusCritical,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: (provider.isOnline ? AppColors.statusAvailable : AppColors.statusCritical).withOpacity(0.5),
+                                blurRadius: 4,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          provider.isOnline ? 'Online' : 'Offline',
+                          style: TextStyle(
+                            color: provider.isOnline ? AppColors.statusAvailable : AppColors.statusCritical,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -57,58 +90,63 @@ class DashboardScreen extends StatelessWidget {
           return RefreshIndicator(
             onRefresh: () => provider.loadData(),
             child: ListView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               children: [
-                // Stats Grid
-                GridView.count(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
+                // Stats Grid - Responsive
+                GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  children: [
-                    DashboardStatCard(
-                      title: 'Total Products',
-                      value: '$totalProducts',
-                      icon: Icons.inventory,
-                      color: AppColors.primary,
-                    ),
-                    DashboardStatCard(
-                      title: 'Out of Stock',
-                      value: '$outOfStock',
-                      icon: Icons.error_outline,
-                      color: AppColors.statusOutOfStock,
-                    ),
-                    DashboardStatCard(
-                      title: 'Critical Stock',
-                      value: '$criticalStock',
-                      icon: Icons.warning_amber_rounded,
-                      color: AppColors.statusCritical,
-                    ),
-                    DashboardStatCard(
-                      title: 'Low Stock',
-                      value: '$lowStock',
-                      icon: Icons.info_outline,
-                      color: AppColors.statusLow,
-                    ),
-                  ],
+                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 280, // Dynamic columns
+                    crossAxisSpacing: 20,
+                    mainAxisSpacing: 20,
+                    childAspectRatio: 1.3,
+                  ),
+                  itemCount: 4,
+                  itemBuilder: (context, index) {
+                    final stats = [
+                      {'title': 'Total Products', 'value': '$totalProducts', 'icon': Icons.inventory_2_rounded, 'color': AppColors.primary},
+                      {'title': 'Low Stock', 'value': '$lowStock', 'icon': Icons.info_outline_rounded, 'color': AppColors.statusLow},
+                      {'title': 'Critical Stock', 'value': '$criticalStock', 'icon': Icons.warning_amber_rounded, 'color': AppColors.statusCritical},
+                      {'title': 'Out of Stock', 'value': '$outOfStock', 'icon': Icons.remove_shopping_cart_rounded, 'color': AppColors.statusOutOfStock},
+                    ];
+                    final stat = stats[index];
+                    return DashboardStatCard(
+                      title: stat['title'] as String,
+                      value: stat['value'] as String,
+                      icon: stat['icon'] as IconData,
+                      color: stat['color'] as Color,
+                    );
+                  },
                 ),
                 
-                const SizedBox(height: 24),
+                const SizedBox(height: 32),
                 
                 // Recently Updated Section
                 const Text(
                   'Recently Updated',
                   style: TextStyle(
-                    fontSize: 20,
+                    fontSize: 22,
                     fontWeight: FontWeight.bold,
+                    letterSpacing: -0.5,
                   ),
                 ),
                 const SizedBox(height: 16),
                 
-                ...recentlyUpdated.map((product) => ProductCard(product: product)),
+                if (recentlyUpdated.isEmpty)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(32.0),
+                      child: Text('No recent updates', style: TextStyle(color: AppColors.textSecondary)),
+                    ),
+                  )
+                else
+                  ...recentlyUpdated.map((product) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12.0),
+                        child: ProductCard(product: product),
+                      )),
                 
-                const SizedBox(height: 80), // Padding for bottom nav
+                const SizedBox(height: 80), // Padding for bottom nav on mobile
               ],
             ),
           );

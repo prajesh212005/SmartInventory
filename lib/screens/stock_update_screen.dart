@@ -15,7 +15,7 @@ class StockUpdateScreen extends StatefulWidget {
 class _StockUpdateScreenState extends State<StockUpdateScreen> {
   final _formKey = GlobalKey<FormState>();
   
-  Product? _selectedProduct;
+  String? _selectedProductId;
   String _updateType = 'IN'; // 'IN' or 'OUT'
   final _quantityController = TextEditingController();
   final _noteController = TextEditingController();
@@ -29,7 +29,7 @@ class _StockUpdateScreenState extends State<StockUpdateScreen> {
 
   void _submit() async {
     if (_formKey.currentState!.validate()) {
-      if (_selectedProduct == null) {
+      if (_selectedProductId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Please select a product')),
         );
@@ -39,21 +39,56 @@ class _StockUpdateScreenState extends State<StockUpdateScreen> {
       final quantity = int.parse(_quantityController.text.trim());
       final note = _noteController.text.trim();
       final provider = Provider.of<InventoryProvider>(context, listen: false);
+      
+      final product = provider.products.firstWhere((p) => p.id == _selectedProductId);
 
       try {
         if (_updateType == 'IN') {
-          await provider.addStockIn(_selectedProduct!, quantity, note);
+          await provider.addStockIn(product, quantity, note);
         } else {
-          await provider.addStockOut(_selectedProduct!, quantity, note);
+          await provider.addStockOut(product, quantity, note);
         }
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Stock updated successfully!')),
           );
+          
+          if (_updateType == 'OUT') {
+            final newQuantity = product.quantity - quantity;
+            final productName = product.name;
+            final threshold = product.minimumThreshold;
+
+            if (newQuantity <= threshold) {
+               showDialog(
+                 context: context,
+                 builder: (context) => AlertDialog(
+                   backgroundColor: AppColors.surface,
+                   title: Row(
+                     children: const [
+                       Icon(Icons.warning_amber_rounded, color: AppColors.statusLow),
+                       SizedBox(width: 8),
+                       Text('Low Stock Warning', style: TextStyle(color: AppColors.textPrimary)),
+                     ],
+                   ),
+                   content: Text(
+                     'The stock for $productName is now $newQuantity, which is at or below the minimum threshold of $threshold. Please consider restocking soon.',
+                     style: const TextStyle(color: AppColors.textSecondary),
+                   ),
+                   actions: [
+                     TextButton(
+                       onPressed: () => Navigator.pop(context),
+                       child: const Text('OK', style: TextStyle(color: AppColors.primary)),
+                     ),
+                   ],
+                 ),
+               );
+            }
+          }
+
           // Reset form
           setState(() {
-            _selectedProduct = null;
+            _selectedProductId = null;
             _quantityController.clear();
             _noteController.clear();
             _updateType = 'IN';
@@ -61,9 +96,36 @@ class _StockUpdateScreenState extends State<StockUpdateScreen> {
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
-          );
+          final errorMsg = e.toString().replaceAll('Exception: ', '');
+          if (errorMsg.contains('Not enough stock available')) {
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                backgroundColor: AppColors.surface,
+                title: Row(
+                  children: const [
+                    Icon(Icons.error_outline, color: AppColors.statusCritical),
+                    SizedBox(width: 8),
+                    Text('Stock Out Failed', style: TextStyle(color: AppColors.textPrimary)),
+                  ],
+                ),
+                content: const Text(
+                  'There is not enough stock available to perform this operation. The resulting stock cannot be negative.',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('OK', style: TextStyle(color: AppColors.primary)),
+                  ),
+                ],
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(errorMsg)),
+            );
+          }
         }
       }
     }
@@ -85,6 +147,13 @@ class _StockUpdateScreenState extends State<StockUpdateScreen> {
             );
           }
 
+          // Ensure selected ID still exists in products, otherwise reset it
+          if (_selectedProductId != null && !products.any((p) => p.id == _selectedProductId)) {
+             WidgetsBinding.instance.addPostFrameCallback((_) {
+               if (mounted) setState(() => _selectedProductId = null);
+             });
+          }
+
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16.0),
             child: Form(
@@ -92,22 +161,22 @@ class _StockUpdateScreenState extends State<StockUpdateScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  DropdownButtonFormField<Product>(
-                    value: _selectedProduct,
+                  DropdownButtonFormField<String>(
+                    value: _selectedProductId,
                     decoration: const InputDecoration(
                       labelText: 'Select Product',
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.inventory_2),
                     ),
                     items: products.map((product) {
-                      return DropdownMenuItem(
-                        value: product,
+                      return DropdownMenuItem<String>(
+                        value: product.id,
                         child: Text('${product.name} (Available: ${product.quantity})'),
                       );
                     }).toList(),
                     onChanged: (value) {
                       setState(() {
-                        _selectedProduct = value;
+                        _selectedProductId = value;
                       });
                     },
                     validator: (value) => value == null ? 'Please select a product' : null,
