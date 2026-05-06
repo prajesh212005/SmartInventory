@@ -20,6 +20,40 @@ class StockHistoryScreen extends StatelessWidget {
           elevation: 0,
           scrolledUnderElevation: 0,
           title: const Text('Stock History'),
+          actions: [
+            Consumer<InventoryProvider>(
+              builder: (context, provider, child) {
+                if (provider.logs.isEmpty) return const SizedBox.shrink();
+                return IconButton(
+                  icon: const Icon(Icons.delete_sweep_rounded, color: AppColors.textSecondary),
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        backgroundColor: AppColors.surface,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                        title: const Text('Clear History', style: TextStyle(color: Colors.white)),
+                        content: const Text('Are you sure you want to delete all stock history logs?', style: TextStyle(color: AppColors.textSecondary)),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              provider.clearLogs();
+                              Navigator.pop(context);
+                            },
+                            child: const Text('Clear All', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ],
         ),
         body: Consumer<InventoryProvider>(
           builder: (context, provider, child) {

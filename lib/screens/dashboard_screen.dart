@@ -7,6 +7,8 @@ import '../widgets/empty_state_widget.dart';
 import '../widgets/mesh_background.dart';
 import '../utils/app_colors.dart';
 
+import '../services/auth_service.dart';
+
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
 
@@ -19,6 +21,33 @@ class DashboardScreen extends StatelessWidget {
           backgroundColor: Colors.transparent,
           elevation: 0,
           scrolledUnderElevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.logout_rounded, color: AppColors.textSecondary),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  backgroundColor: AppColors.surface,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                  title: const Text('Logout', style: TextStyle(color: Colors.white)),
+                  content: const Text('Are you sure you want to log out?', style: TextStyle(color: AppColors.textSecondary)),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        context.read<AuthService>().logout();
+                        Navigator.pop(context);
+                      },
+                      child: const Text('Logout', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
           title: const Text(
             'Overview',
             style: TextStyle(fontWeight: FontWeight.bold),

@@ -249,6 +249,11 @@ class InventoryProvider with ChangeNotifier {
     await loadData();
   }
 
+  Future<void> clearLogs() async {
+    await _storageService.clearStockLogs();
+    await loadData();
+  }
+
   @override
   void dispose() {
     _connectivitySubscription.cancel();

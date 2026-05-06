@@ -44,6 +44,10 @@ class LocalStorageService {
     await logsBox.put(log.id, log);
   }
 
+  Future<void> clearStockLogs() async {
+    await logsBox.clear();
+  }
+
   Future<void> clearAllData() async {
     await productsBox.clear();
     await logsBox.clear();
