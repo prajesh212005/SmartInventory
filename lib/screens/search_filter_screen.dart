@@ -4,6 +4,8 @@ import '../models/product.dart';
 import '../providers/inventory_provider.dart';
 import '../utils/stock_status.dart';
 import '../widgets/product_card.dart';
+import '../widgets/mesh_background.dart';
+import '../utils/app_colors.dart';
 
 class SearchFilterScreen extends StatefulWidget {
   const SearchFilterScreen({super.key});
@@ -56,110 +58,121 @@ class _SearchFilterScreenState extends State<SearchFilterScreen> {
     final provider = Provider.of<InventoryProvider>(context);
     final categories = provider.getCategories();
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Search & Filter'),
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Search products by name...',
-                    prefixIcon: const Icon(Icons.search),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () {
-                        _searchController.clear();
-                        _applyFilters();
-                      },
-                    ),
-                  ),
-                  onChanged: (_) => _applyFilters(),
-                ),
-                const SizedBox(height: 16),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      // Category Dropdown
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: _selectedCategory ?? 'All',
-                            hint: const Text('Category'),
-                            items: categories.map((c) {
-                              return DropdownMenuItem(value: c, child: Text(c));
-                            }).toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedCategory = value;
-                              });
+    return MeshBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          title: const Text('Search & Filter'),
+        ),
+        body: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              child: Column(
+                children: [
+                  TextField(
+                    controller: _searchController,
+                    onChanged: (_) => _applyFilters(),
+                    decoration: InputDecoration(
+                      hintText: 'Search products by name...',
+                      prefixIcon: const Icon(Icons.search_rounded),
+                      suffixIcon: _searchController.text.isNotEmpty 
+                        ? IconButton(
+                            icon: const Icon(Icons.clear_rounded),
+                            onPressed: () {
+                              _searchController.clear();
                               _applyFilters();
                             },
+                          )
+                        : null,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      // Category Filter
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface.withOpacity(0.3),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.white.withOpacity(0.1)),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _selectedCategory ?? 'All',
+                              isExpanded: true,
+                              dropdownColor: AppColors.surface,
+                              items: categories.map((c) {
+                                return DropdownMenuItem(value: c, child: Text(c));
+                              }).toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedCategory = value;
+                                });
+                                _applyFilters();
+                              },
+                            ),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 16),
-                      // Status Dropdown
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<StockStatus?>(
-                            value: _selectedStatus,
-                            hint: const Text('Stock Status'),
-                            items: [
-                              const DropdownMenuItem(value: null, child: Text('All Status')),
-                              ...StockStatus.values.map((s) {
-                                return DropdownMenuItem(
-                                  value: s,
-                                  child: Text(StockStatusHelper.getStatusString(s)),
-                                );
-                              }),
-                            ],
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedStatus = value;
-                              });
-                              _applyFilters();
-                            },
+                      const SizedBox(width: 12),
+                      // Status Filter
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface.withOpacity(0.3),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.white.withOpacity(0.1)),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<StockStatus?>(
+                              value: _selectedStatus,
+                              isExpanded: true,
+                              dropdownColor: AppColors.surface,
+                              hint: const Text('All Status'),
+                              items: [
+                                const DropdownMenuItem(value: null, child: Text('All Status')),
+                                ...StockStatus.values.map((s) {
+                                  return DropdownMenuItem(
+                                    value: s,
+                                    child: Text(StockStatusHelper.getStatusString(s)),
+                                  );
+                                }),
+                              ],
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedStatus = value;
+                                });
+                                _applyFilters();
+                              },
+                            ),
                           ),
                         ),
                       ),
                     ],
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          const Divider(),
-          Expanded(
-            child: _filteredProducts.isEmpty
-                ? const Center(child: Text('No products match your search/filters.'))
-                : ListView.builder(
-                    itemCount: _filteredProducts.length,
-                    itemBuilder: (context, index) {
-                      return ProductCard(product: _filteredProducts[index]);
-                    },
-                  ),
-          ),
-        ],
+            Expanded(
+              child: _filteredProducts.isEmpty
+                  ? const Center(child: Text('No products match your search.', style: TextStyle(color: AppColors.textSecondary)))
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      itemCount: _filteredProducts.length,
+                      itemBuilder: (context, index) {
+                        return ProductCard(product: _filteredProducts[index]);
+                      },
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }

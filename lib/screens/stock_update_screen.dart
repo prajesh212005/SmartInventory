@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/product.dart';
 import '../providers/inventory_provider.dart';
+import '../widgets/mesh_background.dart';
 import '../utils/validators.dart';
 import '../utils/app_colors.dart';
 
@@ -64,6 +65,7 @@ class _StockUpdateScreenState extends State<StockUpdateScreen> {
                  context: context,
                  builder: (context) => AlertDialog(
                    backgroundColor: AppColors.surface,
+                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                    title: Row(
                      children: const [
                        Icon(Icons.warning_amber_rounded, color: AppColors.statusLow),
@@ -78,7 +80,7 @@ class _StockUpdateScreenState extends State<StockUpdateScreen> {
                    actions: [
                      TextButton(
                        onPressed: () => Navigator.pop(context),
-                       child: const Text('OK', style: TextStyle(color: AppColors.primary)),
+                       child: const Text('OK', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
                      ),
                    ],
                  ),
@@ -102,9 +104,10 @@ class _StockUpdateScreenState extends State<StockUpdateScreen> {
               context: context,
               builder: (context) => AlertDialog(
                 backgroundColor: AppColors.surface,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                 title: Row(
                   children: const [
-                    Icon(Icons.error_outline, color: AppColors.statusCritical),
+                    Icon(Icons.error_outline_rounded, color: AppColors.statusCritical),
                     SizedBox(width: 8),
                     Text('Stock Out Failed', style: TextStyle(color: AppColors.textPrimary)),
                   ],
@@ -116,7 +119,7 @@ class _StockUpdateScreenState extends State<StockUpdateScreen> {
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('OK', style: TextStyle(color: AppColors.primary)),
+                    child: const Text('OK', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
@@ -133,163 +136,170 @@ class _StockUpdateScreenState extends State<StockUpdateScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Update Stock'),
-      ),
-      body: Consumer<InventoryProvider>(
-        builder: (context, provider, child) {
-          final products = provider.products;
+    return MeshBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          title: const Text('Update Stock'),
+        ),
+        body: Consumer<InventoryProvider>(
+          builder: (context, provider, child) {
+            final products = provider.products;
 
-          if (products.isEmpty) {
-            return const Center(
-              child: Text('Add products before updating stock.'),
-            );
-          }
+            if (products.isEmpty) {
+              return const Center(
+                child: Text('Add products before updating stock.', style: TextStyle(color: AppColors.textSecondary)),
+              );
+            }
 
-          // Ensure selected ID still exists in products, otherwise reset it
-          if (_selectedProductId != null && !products.any((p) => p.id == _selectedProductId)) {
-             WidgetsBinding.instance.addPostFrameCallback((_) {
-               if (mounted) setState(() => _selectedProductId = null);
-             });
-          }
+            if (_selectedProductId != null && !products.any((p) => p.id == _selectedProductId)) {
+               WidgetsBinding.instance.addPostFrameCallback((_) {
+                 if (mounted) setState(() => _selectedProductId = null);
+               });
+            }
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  DropdownButtonFormField<String>(
-                    value: _selectedProductId,
-                    decoration: const InputDecoration(
-                      labelText: 'Select Product',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.inventory_2),
+            return SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    DropdownButtonFormField<String>(
+                      value: _selectedProductId,
+                      items: products.map((product) {
+                        return DropdownMenuItem<String>(
+                          value: product.id,
+                          child: Text('${product.name} (Available: ${product.quantity})'),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedProductId = value;
+                        });
+                      },
+                      validator: (value) => value == null ? 'Please select a product' : null,
+                      decoration: const InputDecoration(
+                        labelText: 'Select Product',
+                        prefixIcon: Icon(Icons.inventory_2_rounded),
+                      ),
                     ),
-                    items: products.map((product) {
-                      return DropdownMenuItem<String>(
-                        value: product.id,
-                        child: Text('${product.name} (Available: ${product.quantity})'),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedProductId = value;
-                      });
-                    },
-                    validator: (value) => value == null ? 'Please select a product' : null,
-                  ),
-                  const SizedBox(height: 24),
-                  
-                  // Update Type Selector
-                  Row(
-                    children: [
-                      Expanded(
-                        child: InkWell(
-                          onTap: () => setState(() => _updateType = 'IN'),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            decoration: BoxDecoration(
-                              color: _updateType == 'IN' ? AppColors.statusAvailable.withOpacity(0.2) : Colors.transparent,
-                              border: Border.all(
-                                color: _updateType == 'IN' ? AppColors.statusAvailable : Colors.grey,
-                                width: _updateType == 'IN' ? 2 : 1,
-                              ),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Column(
-                              children: [
-                                Icon(Icons.arrow_downward, color: _updateType == 'IN' ? AppColors.statusAvailable : Colors.grey),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Stock In',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: _updateType == 'IN' ? AppColors.statusAvailable : Colors.grey,
+                    const SizedBox(height: 24),
+                    
+                    Row(
+                      children: [
+                        Expanded(
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            child: InkWell(
+                              onTap: () => setState(() => _updateType = 'IN'),
+                              borderRadius: BorderRadius.circular(16),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                decoration: BoxDecoration(
+                                  color: _updateType == 'IN' ? AppColors.statusAvailable.withOpacity(0.2) : AppColors.surface.withOpacity(0.3),
+                                  border: Border.all(
+                                    color: _updateType == 'IN' ? AppColors.statusAvailable : Colors.white.withOpacity(0.1),
+                                    width: _updateType == 'IN' ? 2 : 1,
                                   ),
+                                  borderRadius: BorderRadius.circular(16),
                                 ),
-                              ],
+                                child: Column(
+                                  children: [
+                                    Icon(Icons.arrow_downward_rounded, color: _updateType == 'IN' ? AppColors.statusAvailable : AppColors.textSecondary),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Stock In',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: _updateType == 'IN' ? AppColors.statusAvailable : AppColors.textSecondary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: InkWell(
-                          onTap: () => setState(() => _updateType = 'OUT'),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            decoration: BoxDecoration(
-                              color: _updateType == 'OUT' ? AppColors.statusCritical.withOpacity(0.2) : Colors.transparent,
-                              border: Border.all(
-                                color: _updateType == 'OUT' ? AppColors.statusCritical : Colors.grey,
-                                width: _updateType == 'OUT' ? 2 : 1,
-                              ),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Column(
-                              children: [
-                                Icon(Icons.arrow_upward, color: _updateType == 'OUT' ? AppColors.statusCritical : Colors.grey),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Stock Out',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: _updateType == 'OUT' ? AppColors.statusCritical : Colors.grey,
-                                  ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: InkWell(
+                            onTap: () => setState(() => _updateType = 'OUT'),
+                            borderRadius: BorderRadius.circular(16),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              decoration: BoxDecoration(
+                                color: _updateType == 'OUT' ? AppColors.statusCritical.withOpacity(0.2) : AppColors.surface.withOpacity(0.3),
+                                border: Border.all(
+                                  color: _updateType == 'OUT' ? AppColors.statusCritical : Colors.white.withOpacity(0.1),
+                                  width: _updateType == 'OUT' ? 2 : 1,
                                 ),
-                              ],
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Column(
+                                children: [
+                                  Icon(Icons.arrow_upward_rounded, color: _updateType == 'OUT' ? AppColors.statusCritical : AppColors.textSecondary),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Stock Out',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: _updateType == 'OUT' ? AppColors.statusCritical : AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
+                      ],
+                    ),
+                    
+                    const SizedBox(height: 24),
+                    TextFormField(
+                      controller: _quantityController,
+                      decoration: const InputDecoration(
+                        labelText: 'Quantity',
+                        prefixIcon: Icon(Icons.numbers_rounded),
                       ),
-                    ],
-                  ),
-                  
-                  const SizedBox(height: 24),
-                  TextFormField(
-                    controller: _quantityController,
-                    decoration: const InputDecoration(
-                      labelText: 'Quantity',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.numbers),
+                      keyboardType: TextInputType.number,
+                      validator: Validators.validateQuantity,
                     ),
-                    keyboardType: TextInputType.number,
-                    validator: Validators.validateQuantity,
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _noteController,
-                    decoration: const InputDecoration(
-                      labelText: 'Note (Optional)',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.note),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _noteController,
+                      decoration: const InputDecoration(
+                        labelText: 'Note (Optional)',
+                        prefixIcon: Icon(Icons.note_rounded),
+                      ),
+                      maxLines: 3,
                     ),
-                    maxLines: 3,
-                  ),
-                  const SizedBox(height: 32),
-                  ElevatedButton(
-                    onPressed: _submit,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: _updateType == 'IN' ? AppColors.statusAvailable : AppColors.statusCritical,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                    const SizedBox(height: 32),
+                    ElevatedButton(
+                      onPressed: _submit,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        backgroundColor: _updateType == 'IN' ? AppColors.statusAvailable : AppColors.statusCritical,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        elevation: 4,
+                      ),
+                      child: const Text(
+                        'Confirm Stock Update',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                     ),
-                    child: const Text(
-                      'Confirm Stock Update',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }

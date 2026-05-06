@@ -8,21 +8,32 @@ class StockStatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final color = StockStatusHelper.getStatusColor(status);
+    
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: StockStatusHelper.getStatusColor(status).withOpacity(0.1),
+        color: color.withOpacity(0.15),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: StockStatusHelper.getStatusColor(status).withOpacity(0.5),
+          color: color.withOpacity(0.5),
+          width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.2),
+            blurRadius: 8,
+            spreadRadius: 0,
+          ),
+        ],
       ),
       child: Text(
         StockStatusHelper.getStatusString(status),
         style: TextStyle(
-          color: StockStatusHelper.getStatusColor(status),
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.2,
         ),
       ),
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'app.dart';
 import 'services/local_storage_service.dart';
+import 'services/auth_service.dart';
 import 'providers/inventory_provider.dart';
 
 void main() async {
@@ -14,6 +15,7 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => AuthService()),
         ChangeNotifierProvider(create: (_) => InventoryProvider(storageService)),
       ],
       child: const SmartInventoryApp(),
